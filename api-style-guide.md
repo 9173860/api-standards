@@ -198,7 +198,7 @@ This principle implies the following:
 * A service has a clear isolation boundary - a clear scope of ownership in terms of functionality and data
 * A service cannot expose the data it does not own directly
 
-<h3 id="stability"/>Stability</h3>
+<h2 id="stability"/>Stability</h2>
 
 <strong>Service contracts must be stable.</strong>
 
