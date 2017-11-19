@@ -227,7 +227,7 @@ This principle implies the following:
 
 A service exposes its purpose and capabilities via a service contract. A service contract comprises of functional aspects, non-functional aspects (such as availability, response-time), and business aspects (such as cost-per-call, terms and conditions). _Standardized_ means that the service contracts must be compliant with the contract design standards.
 
-This principle advocates that all functionality and data must only be exposed through standardized service contracts. Consumers of services can, therefore, understand and acces functionality and data only through service contracts.
+This principle advocates that all functionality and data must only be exposed through standardized service contracts. Consumers of services can, therefore, understand and access functionality and data only through service contracts.
 
 This principle implies the following:
 
