@@ -33,8 +33,8 @@ URI 中包含变量的部分遵循 [URI Template RFC 6570](https://tools.ietf.or
 - [规范释义](#规范释义)
     - [所用词汇](#所用词汇)
 - [服务设计原则](#服务设计原则)
-    - [松耦合（Loose Coupling](#松耦合loose-coupling)
-    - [封装（Encapsulation](#封装encapsulation)
+    - [松耦合（Loose Coupling）](#松耦合loose-coupling)
+    - [封装（Encapsulation）](#封装encapsulation)
     - [稳定（Stability）](#稳定stability)
     - [可复用（Reusable）](#可复用reusable)
     - [基于接口约定的（Contract-based）](#基于接口约定的contract-based)
@@ -45,7 +45,7 @@ URI 中包含变量的部分遵循 [URI Template RFC 6570](https://tools.ietf.or
     - [数据资源与 HTTP 方法](#数据资源与-http-方法)
         - [业务能力与资源建模](#业务能力与资源建模)
         - [HTTP 方法](#http-方法)
-    - [Processing](#processing)
+    - [处理](#处理)
     - [HTTP Headers](#http-headers)
         - [Assumptions](#assumptions)
         - [HTTP Standard Headers](#http-standard-headers)
@@ -105,7 +105,7 @@ REST 组件使用表述来对当前或期望的资源状态进行呈现，且该
 
 以下是服务的核心设计原则。
 
-## 松耦合（Loose Coupling
+## 松耦合（Loose Coupling）
 
 **服务和消费端之间必须是松耦合的**
 
@@ -119,7 +119,7 @@ REST 组件使用表述来对当前或期望的资源状态进行呈现，且该
 * 服务可以在不影响现有消费端的情况下进行演化
 * 特定领域的服务可以独立于其他领域进行演化
 
-## 封装（Encapsulation
+## 封装（Encapsulation）
 
 **领域服务只能通过其他服务获取不属于自己的数据和方法**
 
@@ -219,21 +219,21 @@ API 平台的主要目标是通过使用和组合服务，使应用程序能够�
 | `DELETE`| _删除_ 一个资源 |
 | `PATCH`| _部分更新_ 一个资源 |
 
-实际的操作**必须（MUST）**与上表中 HTTP 方法的语义一致。
+实际的操作 **必须（MUST）** 与上表中 HTTP 方法的语义一致。
 
-* **`GET`** 方法**不得（MUST NOT）**有副作用，**不得（MUST NOT）**改变资源的状态。
-* **`POST`** 方法**应该（SHOULD）**被用于在集合中创建新的资源。
+* **`GET`** 方法 **不得（MUST NOT）** 有副作用， **不得（MUST NOT）** 改变资源的状态。
+* **`POST`** 方法 **应该（SHOULD）** 被用于在集合中创建新的资源。
     * **如：** 增加一张信用卡 `POST https://api.foo.com/v1/vault/credit-cards`
-    * 语义的幂等性: 如果这是相同调用的后续执行（包含[`Foo-Request-Id`](#http-自定义-header)Header），并且资源已经被创建，那么请求**应该（SHOULD）**是幂等的。
-* **`POST`** 方法**应该（SHOULD）**被用于创建新的次级资源并建立其与主体资源的关系。
+    * 语义的幂等性: 如果这是相同调用的后续执行（包含[`Foo-Request-Id`](#http-自定义-header)Header），并且资源已经被创建，那么请求 **应该（SHOULD）** 是幂等的。
+* **`POST`** 方法 **应该（SHOULD）** 被用于创建新的次级资源并建立其与主体资源的关系。
     * **如：** 为付款 ID 为 12345 的记录发起退款: `POST https://api.foo.com/v1/payments/payments/12345/refund`
-* **`POST`** 方法**可以（MAY）**被用于以其命名的复杂操作。这也被称作[_控制器模式_](patterns.md#controller-resource)，通常认为这是 RESTful 模型的例外情况。在资源代表了一个业务过程，而 `POST` 操作是其中的步骤或行为时，这种模式更为适用。更多信息可参考[RESTful Web Services Cookbook][29]，[section 2.6](http://techbus.safaribooksonline.com/9780596809140/chapter-identifying-resources)。
-* **`PUT`** 方法**应该（SHOULD）**被用于更新资源的属性或是建立资源与现有次级资源的关系。在建立关系的情况下，应当更新主体资源到次级资源的引用。
+* **`POST`** 方法 **可以（MAY）** 被用于以其命名的复杂操作。这也被称作[_控制器模式_](patterns.md#controller-resource)，通常认为这是 RESTful 模型的例外情况。在资源代表了一个业务过程，而 `POST` 操作是其中的步骤或行为时，这种模式更为适用。更多信息可参考[RESTful Web Services Cookbook][29]，[section 2.6](http://techbus.safaribooksonline.com/9780596809140/chapter-identifying-resources)。
+* **`PUT`** 方法 **应该（SHOULD）** 被用于更新资源的属性或是建立资源与现有次级资源的关系。在建立关系的情况下，应当更新主体资源到次级资源的引用。
 
-## Processing
+## 处理
 
-It is assumed throughout these guidelines that 
-request bodies and response bodies MUST be sent using [JavaScript Object Notation (JSON)][30]. JSON is a light-weight data representation for an object composed of unordered key-value pairs. JSON can represent four primitive types (strings, numbers, booleans, and null) and two structured types (objects and arrays). When processing an API method call, the following guidelines SHOULD be followed.
+我们约定在指导原则中，
+请求主体和响应主体都 **必须（MUST）** 使用[JavaScript Object Notation（JSON）][30]发送。 JSON 是由无序键值对组成的一种轻量级数据交换格式。 JSON 可以表示四种基本类型（字符串，数字，布尔值和空值）以及两种结构化类型（对象和数组）。处理 API 方法调用时， **应该（SHOULD）** 遵循以下原则：
 
 <h3 id="data-model">Data Model</h3>
 
