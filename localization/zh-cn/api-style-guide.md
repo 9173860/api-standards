@@ -46,9 +46,12 @@ URI 中包含变量的部分遵循 [URI Template RFC 6570](https://tools.ietf.or
         - [业务能力与资源建模](#业务能力与资源建模)
         - [HTTP 方法](#http-方法)
     - [处理](#处理)
+        - [数据模型](#数据模型)
+        - [序列化](#序列化)
+        - [输入与输出的严格性](#输入与输出的严格性)
     - [HTTP Headers](#http-headers)
-        - [Assumptions](#assumptions)
-        - [HTTP Standard Headers](#http-standard-headers)
+        - [假设](#假设)
+        - [HTTP 标准 Headers](#http-标准-headers)
         - [HTTP 自定义 Header](#http-自定义-header)
         - [Example](#example)
         - [allOf](#allof)
@@ -205,7 +208,7 @@ API 平台的主要目标是通过使用和组合服务，使应用程序能够�
 
 ### 业务能力与资源建模
 
-一个组织的业务能力通常以 API 的形式暴露。不同的 API **不得（MUST NOT）**提供相同的功能，但资源（如用户账户或信息卡）在不同的场景下是可重用的。
+一个组织的业务能力通常以 API 的形式暴露。不同的 API **不得（MUST NOT）** 提供相同的功能，但资源（如用户账户或信息卡）在不同的场景下是可重用的。
 
 ### HTTP 方法
 
@@ -235,56 +238,53 @@ API 平台的主要目标是通过使用和组合服务，使应用程序能够�
 我们约定在指导原则中，
 请求主体和响应主体都 **必须（MUST）** 使用[JavaScript Object Notation（JSON）][30]发送。 JSON 是由无序键值对组成的一种轻量级数据交换格式。 JSON 可以表示四种基本类型（字符串，数字，布尔值和空值）以及两种结构化类型（对象和数组）。处理 API 方法调用时， **应该（SHOULD）** 遵循以下原则：
 
-<h3 id="data-model">Data Model</h3>
+### 数据模型
 
-The data model for representation MUST conform to the JSON Data Interchange Format as described in [RFC 7159](https://tools.ietf.org/html/rfc7159).
+表示层的数据模型必须符合 [RFC 7159](https://tools.ietf.org/html/rfc7159) 中 JSON 数据传输格式的描述。
 
+### 序列化
 
-<h3 id="serialization">Serialization</h3>
+* 资源节点 **必须（MUST）** 支持 `application/json` 内容类型。
+* 如果请求发送了 `Accept` 头，但 `application/json` 并不是可接受的返回类型，则必须返回 `406 Not Acceptable` 错误。
 
-*  Resource endpoints MUST support `application/json` as content type. 
-* If an `Accept` header is sent and `application/json` is not an acceptable response, a `406 Not Acceptable` error MUST be returned.
+### 输入与输出的严格性
 
-<h3 id="strictness">Input and Output Strictness</h3>
-
-APIs MUST be strict in the information they produce, and they SHOULD be strict in what they consume as well.
-
-Since we are dealing with programming interfaces, we need to avoid guessing the meaning of what is being sent to us as much as possible. Given that integration is typically a one-time task for a developer and we provide good documentation, we need to be strict with using the data that is being received. [Postel's law](https://en.wikipedia.org/wiki/Robustness_principle) must be weighed against the many dangers of permissive parsing.
+API **必须（MUST）** 对返回的内容进行严格约束，同时也 **应该（SHOULD）** 对输入进行严格约束。
 
 
+我们开发的是编程接口，所以我们需要尽量避免猜测我们会收到什么内容。通常，集成对于开发者来说是一次性任务，因此在我们提供了良好文档的情况下，我们应当严格检查开发者的输入。另外，我们也应当考虑到 [Postel定律](https://en.wikipedia.org/wiki/Robustness_principle) 与不严格地输入解析所带来的诸多危险。
 
 ## HTTP Headers
 
-The purpose of HTTP headers is to provide metadata information about the body or the sender of the message in a uniform, standardized, and isolated way. HTTP header names are NOT case sensitive.
+HTTP header 的目的是为请求体提供原信息，或是以统一、标准化且独立的方式提供发送者的信息。HTTP header 的名称是大小写 **不** 敏感的。
 
-* HTTP headers SHOULD only be used for the purpose of handling cross-cutting concerns.
-* API implementations SHOULD NOT introduce or depend on headers.
-* Headers MUST NOT include API or domain specific values.
-* If available, HTTP standard headers MUST be used instead of creating a custom header.
+* HTTP header **应该（SHOULD）** 仅被用于提供切面处理所需的信息。
+* API 实现 **不该（SHOULD NOT）** 引入或依赖于 HTTP header。
+* HTTP header **不得（MUST NOT）** 包含 API 或领域相关的特殊信息。
+* 在可能的情况下，**必须（MUST）** 使用 HTTP 标准 header 而非自定义 header。
 
-### Assumptions
+### 假设
 
-**Service Consumers and Service Providers:**
+**服务消费者与服务提供者：**
 
-* SHOULD NOT expect that a particular HTTP header is available. It is possible that an intermediary component in call chain can drop an HTTP header. This is the reason business logic SHOULD NOT be based on HTTP headers.
-* SHOULD NOT assume the value of a header has not been changed as part of HTTP message transmission.
+* **不该（SHOULD NOT）** 认为自己可以获取某个特定的 HTTP header。HTTP 调用的中间环节可能会抛弃某些 HTTP header，因此我们的业务逻辑 **不该（SHOULD NOT）** 依赖于 HTTP header。
+* **不该（SHOULD NOT）** 假设在 HTTP 信息传输的过程中，header 的值不会被更改。
 
-**Infrastructure Component** (Web-services framework, Client invocation library, Enterprise Service Bus (ESB), Load Balancers (LB), etc. involved in HTTP message delivery):
+**基础设施组件** (如 Web 服务框架、客户端请求库、企业服务总线（ESB）、负载均衡（LB）等涉及 HTTP 消息传输的部分):
 
-* MAY return an error based on availability and validity of a particular header without transmitting the message forward. For example, an authentication or authorization error for a request based on client identity and credentials.
-* MAY add, remove, or change a value of an HTTP header.
+* **可以（MAY）** 基于特定 header 携带信息的有效性与正确性，直接返回错误信息，而不需要将信息继续转发至下一层。如客户端认证机制带来的鉴权错误即属于这种情况。
+* **可以（MAY）** 增加、删除或变更某个 HTTP header 的值。
 
-### HTTP Standard Headers
+### HTTP 标准 Headers
 
-These are headers defined or referenced from [HTTP/1.1 specification (RFC 7231)](http://tools.ietf.org/html/rfc7231#page-33). Their purpose, syntax, values, and semantics are well defined and understood by many infrastructure components.
+标准 Header 在 [HTTP/1.1 规范 (RFC 7231)](http://tools.ietf.org/html/rfc7231#page-33) 中被定义。他们的目的、语法、值和语义都已被清晰地定义并可被多种基础设施组件所理解。
 
-
-| HTTP Header Name | Description |
+| HTTP Header 名称 | 描述 |
 |-------------|------------|
-| `Accept` | This request header specifies the media types that the API client is capable of handling in the response. Systems issuing the HTTP request SHOULD send this header. Systems handling the request SHOULD NOT assume it is available. It is assumed throughout these API guidelines that APIs support `application/json`. |
-| `Accept-Charset` | This request header specifies what character sets the API client is capable of handling in the response.<ul><li>The value of `Accept-Charset` SHOULD include `utf-8`.</li></ul> |
-| `Content-Language` | This request/response header is used to specify the language of the content. The default locale is `en-US`. API clients SHOULD identify the language of the data using Content-Language header. APIs MUST provide this header in the response. <br/><br/>Example: <pre>Content-Language: en-US</pre> |
-| `Content-Type` | This request/response header indicates the media type of the request or response body. <br/><ul><li>API client MUST include with request if the request contains a body, e.g. it is a `POST`, `PUT`, or `PATCH` request.</li><li>API developer MUST include it with response if a response body is included (not used with `204` responses).</li><li>If the content is a text-based type, such as [JSON][30], the `Content-Type` MUST include a character-set parameter. The character-set MUST be UTF-8.</li><li>The only supported media type for now is `application/json`.</li></ul>Example:<pre>(in HTTP request)    Accept: application/json<br/>                     Accept-Charset: utf-8<br/>(in HTTP response)   Content-Type: application/json; charset=utf-8</pre> |
+| `Accept` | 该请求头制定了 API 客户端所能处理的响应媒体类型。系统假设 HTTP 请求 **应该（SHOULD）** 发送这个 header。处理请求的服务 **不该（SHOULD NOT）** 假设自己一定能够获取到这个 header。我们假设遵循该 API 规范的 API 都会支持 `application/json` |
+| `Accept-Charset` | 该请求头指定了 API 客户端能够处理的相信字符集<ul><li>`Accept-Charset` **应该（SHOULD）** 包含  `utf-8`</li></ul> |
+| `Content-Language` | 该响应/请求头用于指定内容的语言，默认语言为 `en-US`（译注：PayPal 的情况）。API 客户端 **应该（SHOULD）** 使用 `Content-Language` header 指定内容的语言。API **必须（MUST）** 在响应中包含该 header。 <br/><br/>例如：<pre>Content-Language: en-US</pre> |
+| `Content-Type` | 该响应/请求头用于指定请求或返回的媒体类型。<br/><ul><li>API 客户端请求在请求体存在的情况下 **必须（MUST）** 包含该请求头, 如 `POST`, `PUT`, 或 `PATCH` 请求。</li><li>只要返回有响应体（不是 `204` 响应），API 开发者就 **必须（MUST）** 在 HTTP 响应中使用该 header。</li><li>如果内容基于文本类型，如[JSON][30], 则 `Content-Type` **必须（MUST）包含字符集参数，且必须为 UTF-8。</li><li> 目前来说，唯一支持的媒体类型即 `application/json`</li></ul>例如:<pre>(在 HTTP 请求中)    Accept: application/json<br/>                     Accept-Charset: utf-8<br/>(在 HTTP 响应中)   Content-Type: application/json; charset=utf-8</pre> |
 | `Link` | According to [Web Linking RFC 5988](https://tools.ietf.org/html/rfc5988), a link is a typed connection between two resources that are identified by Internationalised Resource Identifiers (IRIs). The `Link` entity-header field provides a means for serializing one or more links in HTTP headers. <br><br> APIs SHOULD be built with a design assumption that neither an API, nor an API client's business logic should depend on information provided in the headers. Headers must only be used to carry cross-cutting concern information such as security, traceability, monitoring, etc. <br><br>Therefore, usage of the `Link` header is prohibited with response codes `201` or `3xx`. Consider using [HATEOAS links](#hypermedia) in the response body instead. |
 | `Location` | This response-header field is used to redirect the recipient to a location other than the Request-URI for completion of the request or identification of a new resource. <br><br>APIs SHOULD be built with a design assumption that neither an API, nor an API client's business logic should depend on information provided in the headers. Headers must only be used to carry cross-cutting concern information such as security, traceability, monitoring, etc. <br><br>Therefore, usage of the `Location` header is prohibited with response codes `201` or `3xx`. Consider using [HATEOAS links](#hypermedia) in response body instead. | 
 | `Prefer` | The [`Prefer`](https://tools.ietf.org/html/rfc7240) request header field is used to indicate that a particular server behavior(s) is `preferred` by the client but is not required for successful completion of the request. It is an `end to end` field and MUST be forwarded by a proxy if the request is forwarded unless `Prefer` is explicitly identified as being `hop by hop` using the `Connection` header field. Following token values are possible to use for APIs provided an API documentation explicitly indicates support for `Prefer`.<br><br>`respond-async`: API client prefers that API server processes its request asynchronously. <pre>Prefer: respond-async </pre> Server returns a `202 (Accepted)` response and processes the request asynchronously. API server could use a webhook to inform the client subsequently, or the client may call `GET` to get the response at a later time. Refer to [Asynchronous Operations](patterns.md#asynchronous-operations) for more details.<br/><br/>`read-consistent`: API client prefers that API server returns response from a durable store with consistent data. For APIs that are not offering any optimization preferences for their clients, this behavior would be the default and it would not require the client to set this token. <pre>Prefer: read-consistent</pre>`read-eventual-consistent`: API client prefers that API server returns response from either cache or presumably eventually consistent datastore if applicable. If there is a miss in finding the data from either of these two types of sources, the API server might return response from a consistent, durable datastore.<pre>Prefer: read-eventual-consistent</pre>`read-cache`: API client prefers that API server returns response from cache if available. If the cache hit is a miss, the server could return response from other sources such as eventual consistent datastore or a consistent, durable datastore.<pre>Prefer: read-cache</pre>`return=representation`: API client prefers that API server include an entity representing the current state of the resource in the response to a successful request. This preference is intended to provide a means of optimizing communication between the client and server by eliminating the need for a subsequent `GET` request to retrieve the current representation of the resource following a creation (`POST`) modification operation (`PUT` or `PATCH`).<pre>Prefer: return=representation</pre>`return=minimal`: API client indicates that the server returns only a minimal response to a successful request. The determination of what constitutes an appropriate "minimal" response is solely at the discretion of the server.<pre>Prefer: return=minimal</pre>|
