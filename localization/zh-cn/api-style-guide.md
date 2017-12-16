@@ -53,11 +53,18 @@ URI 中包含变量的部分遵循 [URI Template RFC 6570](https://tools.ietf.or
         - [假设](#假设)
         - [HTTP 标准 Headers](#http-标准-headers)
         - [HTTP 自定义 Header](#http-自定义-header)
+        - [HTTP Header 的传递](#http-header-的传递)
+    - [HTTP 状态码](#http-状态码)
+        - [状态码的范围](#状态码的范围)
+        - [状态报告](#状态报告)
+        - [被允许的状态码](#被允许的状态码)
+        - [HTTP 方法与对应的状态码](#http-方法与对应的状态码)
 - [超媒体](#超媒体)
     - [HATEOAS](#hateoas)
         - [Example](#example)
         - [allOf](#allof)
         - [anyOf/oneOf](#anyofoneof)
+- [错误处理](#错误处理)
 
 <!-- /TOC -->
 
@@ -247,7 +254,7 @@ API 平台的主要目标是通过使用和组合服务，使应用程序能够�
 ### 序列化
 
 * 资源节点 **必须（MUST）** 支持 `application/json` 内容类型。
-* 如果请求发送了 `Accept` 头，但 `application/json` 并不是可接受的返回类型，则必须返回 `406 Not Acceptable` 错误。
+* 如果请求头中包含 `Accept` 字段，但 `application/json` 并不是可接受的返回类型，则必须返回 `406 Not Acceptable` 错误。
 
 ### 输入与输出的严格性
 
@@ -302,68 +309,67 @@ HTTP header 的目的是为请求体提供原信息，或是以统一、标准�
 
 
 
-<h3 id="http-header-propagation">HTTP Header Propagation</h3>
+### HTTP Header 的传递
 
-When services receive request headers, they MUST pass on relevant custom headers in addition to the HTTP standard headers in requests/messages dispatched to downstream applications. 
+当服务收到请求时，**必须（MUST）** 将自定义请求头，以及标准 HTTP 请求头发派到下游应用。
 
+## HTTP 状态码
 
-<h2 id="http-status-codes">HTTP Status Codes</h2>
+RESTful 服务使用 HTTP 状态码指明 HTTP 方法执行的结果。HTTP 协议使用一个整数和一条信息来指明一个请求的执行结果，这个整数即 _状态码_ 而信息即 _原因短语_ 。原因短语是一条可读的信息，用于阐明响应的结果。HTTP 状态码按照其数值范围进行分类。
 
-RESTful services use HTTP status codes to specify the outcomes of HTTP method execution. HTTP protocol specifies the outcome of a request execution using an integer and a message. The number is known as the _status code_ and the message as the _reason phrase_. The reason phrase is a human readable message used to clarify the outcome of the response. HTTP protocol categorizes status codes in ranges.
+### 状态码的范围
 
-<h3 id="status-code-ranges">Status Code Ranges</h3>
+当响应 API 请求时， **必须（MUST）** 使用以下范围的状态码。
 
-When responding to API requests, the following status code ranges MUST be used.
-
-|Range|Meaning|
+|范围|含义|
 |---|---|
-|`2xx`|Successful execution. It is possible for a method execution to succeed in several ways. This status code specifies which way it succeeded.|
-|`4xx`|Usually these are problems with the request, the data in the request, invalid authentication or authorization, etc. In most cases the client can modify their request and resubmit.|
-| `5xx`| Server error: The server was not able to execute the method due to site outage or software defect. 5xx range status codes SHOULD NOT be utilized for validation or logical error handling. |
+|`2xx`|成功地执行。一个方法可能以不同的方式被成功执行，该状态码可以用于标识被成功执行的方式。|
+|`4xx`|请求发生问题，如请求中的数据问题，无效的鉴权等。一般来说，客户端可以更改并重新发起请求。|
+| `5xx`| 服务器错误：服务器由于运行终止或代码缺陷，不能执行所请求的方法。 5xx 错误 **不该（SHOULD NOT）** 被用于有效性验证或是处理逻辑错误。|
 
-<h3 id="status-reporting">Status Reporting</h3>
+### 状态报告
 
-Success and failure apply to the whole operation not just to the SOA framework portion or to the business logic portion of code exectuion. 
+（请求的）成功和失败的并不由 SOA 框架部分或业务逻辑代码的执行部分所决定。
 
-Following are the guidelines for status codes and reason phrases.
+以下是状态码其原因短语的使用指南。
 
-* Success MUST be reported with a status code in the `2xx` range.
-* HTTP status codes in the `2xx` range MUST be returned only if the complete code execution path is successful. This includes any container/SOA framework code as well as the business logic code execution of the method.
-* Failures MUST be reported in the `4xx` or `5xx` range. This is true for both system errors and application errors.
-* There MUST be a consistent, JSON-formatted error response in the body as defined by the [`error.json`][22] schema. This schema is used to qualify the kind of error. Please refer to [Error Handling](#error-handling) guidelines for more details.
-* A server returning a status code in the `4xx` or `5xx` range MUST return the `error.json` response body.
-* A server returning a status code in the `2xx` range MUST NOT return response following `error.json`, or any kind of error code, as part of the response body.
-* For client errors in the `4xx` code range, the reason phrase SHOULD provide enough information for the client to be able to determine what caused the error and how to fix it.
-* For server errors in the `5xx` code range, the reason phrase and an error response following `error.json` SHOULD limit the amount of information to avoid exposing internal service implementation details to clients. This is true for both external facing and internal APIs. Service developers should use logging and tracking utilities to provide additional information.
+* 成功的请求 **必须（MUST）** 回报 `2xx` 范围的状态码。
+* 仅在完全成功地执行了请求时，才返回 `2xx` 范围的 HTTP 状态码。这里的“完全成功地执行”，既包括容器或 SOA 框架部分的代码执行，也包括业务逻辑部分代码的执行。
+* 失败的请求 **必须（MUST）** 回报 `4xx` 或 `5xx` 范围的状态码，框架和应用部分的处理失败皆如此。
+* 错误返回 **必须（MUST）** 是在响应体中以一致性的 JSON 格式返回，遵照 [`error.json`][22] 的格式定义。 该格式定义被用于限定错误种类。详情请参照 [Error Handling](#错误处理) 部分。
+* 服务返回 `4xx` 或 `5xx` 范围的状态码时，**必须（MUST）** 返回 `error.json` 响应体。
+* 服务返回 `2xx` 范围的状态码时，**不得（MUST NOT）** 返回 `error.json` 响应体，或在响应体中包含任何形式的错误码。
+* 返回 `4xx` 范围的状态码时，原因短语 **应该（SHOULD）** 提供足够的信息，是的客户端可以判断产生错误的原因，以及如何修复。
+* 对于 `5xx` 范围的状态码，原因短语和 `error.json` 中的错误返回信息应当有所限制，避免向客户端暴露服务实现细节，对于内部服务和外服服务都应当如此。服务端开发者应当使用日志和查询工具来获取额外信息。
 
-<h3 id="allowed-status-codes">Allowed Status Codes List</h3>
+### 被允许的状态码
 
-All REST APIs MUST use only the following status codes. Status codes in **`BOLD`** SHOULD be used by API developers. The rest are primarily intended for web-services framework developers reporting framework-level errors related to security, content negotiation, etc.
+所有的 REST API **必须（MUST）** 仅仅使用一下状态码，**`粗体`** 的状态码 **应该（SHOULD）** 被 API 的开发者使用，余下的应当被 web 服务框架的开发者用于报告框架级别的问题，如安全、内容协调等。
 
-* APIs MUST NOT return a status code that is not defined in this table.
-* APIs MAY return only some of status codes defined in this table.
+* API **不得（MUST NOT）** 返回未在此表中定义的状态码。
+* APIs **可以（MAY）** 仅返回此表中的部分状态码。
 
-| Status Code | Description |
+| 状态码 | 描述 |
 |-------------|-------------|
-| **`200 OK`** | Generic successful execution. |
-| **`201 Created`** | Used as a response to `POST` method execution to indicate successful creation of a resource. If the resource was already created (by a previous execution of the same method, for example), then the server should return status code `200 OK`. |
-| **`202 Accepted`** | Used for asynchronous method execution to specify the server has accepted the request and will execute it at a later time. For more details, please refer [Asynchronous Operations](patterns.md#asynchronous-operations). |
-| **`204 No Content`** | The server has successfully executed the method, but there is no entity body to return.|
-| **`400 Bad Request`** | The request could not be understood by the server. Use this status code to specify:<br/> <ul><li>The data as part of the payload cannot be converted to the underlying data type.</li><li>The data is not in the expected data format.</li><li>Required field is not available.</li><li>Simple data validation type of error.</li></ul>|
-| `401 Unauthorized` | The request requires authentication and none was provided. Note the difference between this and `403 Forbidden`. |
-| **`403 Forbidden`** | The client is not authorized to access the resource, although it may have valid credentials. API could use this code in case business level authorization fails. For example, accound holder does not have enough funds. |
-| **`404 Not Found`** | The server has not found anything matching the request URI. This either means that the URI is incorrect or the resource is not available. For example, it may be that no data exists in the database at that key. |
-| `405 Method Not Allowed` | The server has not implemented the requested HTTP method. This is typically default behavior for API frameworks.
-| `406 Not Acceptable` | The server MUST return this status code when it cannot return the payload of the response using the media type requested by the client. For example, if the client sends an `Accept: application/xml` header, and the API can only generate `application/json`, the server MUST return `406`. |
-| `415 Unsupported Media Type` | The server MUST return this status code when the media type of the request's payload cannot be processed. For example, if the client sends a `Content-Type: application/xml` header, but the API can only accept `application/json`, the server MUST return `415`. |
-| **`422 Unprocessable Entity`** | The requested action cannot be performed and may require interaction with APIs or processes outside of the current request. This is distinct from a 500 response in that there are no systemic problems limiting the API from performing the request. |
-| `429 Too Many Requests` | The server must return this status code if the rate limit for the user, the application, or the token has exceeded a predefined value. Defined in Additional HTTP Status Codes [RFC 6585](https://tools.ietf.org/html/rfc6585). |
-| **`500 Internal Server Error`** | This is either a system or application error, and generally indicates that although the client appeared to provide a correct request, something unexpected has gone wrong on the server. A `500` response indicates a server-side software defect or site outage. `500` SHOULD NOT be utilized for client validation or logic error handling. |
-| `503 Service Unavailable` | The server is unable to handle the request for a service due to temporary maintenance. |
+| **`200 OK`** | 通用的执行成功 |
+| **`201 Created`** | 用于回报 `POST` 方法创建资源成功，如果一个资源已经被创建（例如上一次执行了相同方法），应当返回 `200 OK`|
+| **`202 Accepted`** | 用于表示服务一接受了一个异步方法执行的请求，并将在接下来的时间处理。更多信息请参阅[Asynchronous Operations](patterns.md#asynchronous-operations)。 |
+| **`204 No Content`** | 服务器成功执行了方法，但没有需要返回的请求体。|
+| **`400 Bad Request`** | 服务器不理解的请求。使用该状态码表示以下情况：<br/> <ul><li>payload 中的部分数据不能被转换为所需的数据类型。</li><li>数据格式不正确。</li><li>必须的字段不可用。</li><li>单纯的数据无效。</li></ul>|
+| `401 Unauthorized` | 需要鉴权信息，但请求中并未提供。注意其与 `403 Forbidden` 的区别。|
+| **`403 Forbidden`** | 虽然客户端提供了鉴权信息，但无权访问所请求的资源。API 可以使用该状态码来处理业务层的权限问题，如账户持有人的资产不达标。|
+| **`404 Not Found`** | 服务端没有任何符合请求 URI 的资源，这意味着资源的 URI 不正确，或是资源不可用。例如数据库中的指定字段没有数据。|
+| `405 Method Not Allowed` | 服务器并没有实现所请求的 HTTP 方法。这通常是 API 框架的行为。|
+| `406 Not Acceptable` | 在服务端不能按照客户端要求的媒体类型来返回内容时，服务端 **必须（MUST）** 返回该状态码。如客户端发送了 `Accept: application/xml` 请求头，但 API 只能返回 `application/json` 内容时，**必须（MUST）** 返回 `406`。 |
+| `415 Unsupported Media Type` | 在客户端在请求体中使用了服务端无法处理的媒体类型时， **必须（MUST）** 返回该状态码。 如客户端发送了 `Content-Type: application/xml` 请求头，但 API 只接受 `application/json` 时，服务器 **必须（MUST）** 返回 `415`. |
+| **`422 Unprocessable Entity`** | 请求不能被完成，可能需要与其他的 API 进行交互或在当前请求外进行处理。这与 500 相应的区别是这其中没有系统问题限制 API 对于请求的处理。|
+| `429 Too Many Requests` | 在用户、应用或是某个 token 达到了预定义的请求速率上限时，服务器必须返回该状态码。该状态码在额外的 HTTP 请求状态码[RFC 6585](https://tools.ietf.org/html/rfc6585) 中被定义。 |
+| **`500 Internal Server Error`** | 在客户端发起了正确的请求的情况下，由于系统或应用导致的服务器意外错误。 `500` 错误代表由于运行终止或代码缺陷， **不该（SHOULD NOT）** 被用于有效性验证或是处理逻辑错误。|
+| `503 Service Unavailable` | 因为临时维护，服务器无法处理请求|
 
-<h3 id="mapping">HTTP Method to Status Code Mapping</h3>
+### HTTP 方法与对应的状态码
 
-For each HTTP method, API developers SHOULD use only status codes marked as "X"  in this table. If an API needs to return any of the status codes marked with an **`X`**, then the use case SHOULD be reviewed as part of API design review process and maturity level assessment. Most of these status codes are used to support very rare use cases.
+对于每一个 HTTP 方法， API 开发者 **应该（SHOULD）** 仅使用下表中标记了 "X" 的状态码。如果 API 需要范围标记为 **`X`** 的状态码， **应该（SHOULD）** 对使用情况进行评审和成熟度评估。大多数此类状态码仅在极少的情况下会被使用。
 
 | Status Code | 200 Success | 201 Created |202 Accepted | 204 No Content | 400 Bad Request |  404 Not Found |422 Unprocessable Entity | 500 Internal Server Error |
 |-------------|:------------|:------------|:------------|:---------------|:----------------|:---------------|:------------------------|:--------------------------|
@@ -374,25 +380,23 @@ For each HTTP method, API developers SHOULD use only status codes marked as "X" 
 | `DELETE`    | X             |               |               | X           | X             | X              | **`X`**               | X                       |
 
 
+* `GET`: `GET` 方法的目的是获取资源。当请求成功时，应当返回 `200` 状态码与所请求的资源内容。在请求了空的资源集合的情况下 (0 items in `/v1/namespace/resources`)， `200` 也同样是适用的状态(资源包含一个空的 `items` 数组)。资源被“软删除”的情况下，不应使用 `200`（用 `404`），除非请求期望暴露“已删除”状态。
 
-* `GET`: The purpose of the `GET` method is to retrieve a resource. On success, a status code `200` and a response with the content of the resource is expected. In cases where resource collections are empty (0 items in `/v1/namespace/resources`), `200` is the appropriate status (resource will contain an empty `items` array). If a resource item is 'soft deleted' in the underlying data, `200` is not appropriate (`404` is correct) unless the 'DELETED' status is intended to be exposed.
+* `POST`: `POST` 方法的主要目的是创建资源。如果资源不存在，并且作为请求执行的一部分被创建了出来，则 `201` 状态码 **应该（SHOULD)** 被返回。
+    * 成功创建资源的情况下，返回体中应当包含被成功创建资源的引用（链接或资源定位符）。
+    * 语义幂等性: 如果连续发起同一个请求(包含[`Foo-Request-Id`](#http-自定义-header)请求头) 而资源已经被创建的情况下， **应该（SHOULD)** 返回 `200` 状态码。关于 API 幂等性的更多信息，参见[idempotency](patterns.md#idempotency)。
+	* 如果子资源被作为工具（如 "controller" 或数据源），而主资源的定位符不存在时，应当返回 `404`。
 
-* `POST`: The primary purpose of `POST` is to create a resource. If the resource did not exist and was created as part of the execution, then a status code `201` SHOULD be returned.
-    * It is expected that on a successful execution, a reference to the resource created (in the form of a link or resource identifier) is returned in the response body.
-    * Idempotency semantics: If this is a subsequent execution of the same invocation (including the [`Foo-Request-Id`](#http-custom-headers) header) and the resource was already created, then a status code of `200` SHOULD be returned. For more details on idempotency in APIs, refer to [idempotency](patterns.md#idempotency).
-	* If a sub-resource is utilized ('controller' or data resource), and the primary resource identifier is non-existent, `404` is an appropriate response.
+* `POST` 在应用 [controller pattern](patterns.md##controller-resource) 模式时，也可以使用该方法，应当使用 `200` 作为状态码。
 
-* `POST` can also be used while utilizing the [controller pattern](patterns.md##controller-resource), `200` is the appropriate status code.
+* `PUT`: 大多数情况下，成功更新资源以后无需返回任何内容，因此该方法 **应该（SHOULD）** 返回 `204` 状态码。所请求的信息无需被再次返回。
+    * 在少数情况下，服务端生成的值可能会需要在返回中提供，为了优化客户端流量（如果客户端需要在 `PUT` 后再次请求 `GET` 方法），可以返回 `200`。
 
-* `PUT`: This method SHOULD return status code `204` as there is no need to return any content in most cases as the request is to update a resource and it was successfully updated. The information from the request should not be echoed back. 
-    * In rare cases, server generated values may need to be provided in the response, to optimize client flow (if the client necessarily has to perform a `GET` after `PUT`). In these cases, `200` and a response body are appropriate. 
+* `PATCH`: 该方法应当遵循与 `PUT` 相同的状态和相应语义，返回 `204` 状态码和空的返回体。
+	* 应当尽可能避免返回 `200` + 返回体。 由于 `PATCH` 执行的是部分更新，意味着对单个资源进行多次请求是正常现象。在返回完整资源的情况下，可能会导致大量的带宽使用，尤其是带宽敏感的手机客户端。
 
-* `PATCH`: This method should follow the same status/response semantics as `PUT`, `204` status and no response body.
-	* `200` + response body should be avoided at all costs, as `PATCH` performs partial updates, meaning multiple calls per resource is normal. As such, responding with the entire resource can result in large bandwidth usage, especially for bandwidth-sensitive mobile clients.
-
-* `DELETE`: This method SHOULD return status code `204` as there is no need to return any content in most cases as the request is to delete a resource and it was successfully deleted.
-
-    * As the `DELETE` method MUST be idempotent as well, it SHOULD still return `204`, even if the resource was already deleted. Usually the API consumer does not care if the resource was deleted as part of this operation, or before. This is also the reason why `204` instead of `404` should be returned.
+* `DELETE`: 该方法 **应该（SHOULD）** 返回 `204` 状态码，同样不需要任何返回体。因为请求要删除一个资源并且它被成功删除了
+    * `DELETE` 方法 **必须（MUST）** 同样必须是幂等的，即使资源已经被删除，也 **应该（SHOULD)** 返回 `204`。通常来说，API 消费者并不关心删除操作的执行行为本身，因此应当使用 `204` 代替 `404` 作为返回。
 
 
 
@@ -1439,7 +1443,7 @@ The following common types MUST be used to express various date-time formats:
 * [`time_zone.json`](v1/schema/json/draft-04/time_zone.json) SHOULD be used for expressing timezone of a RFC3339 `date-time` or a `full-time` field.
 
 
-<h1 id="error-handling">Error Handling</h1>
+# 错误处理
 
 As per HTTP specifications, the outcome of a request execution could be specifiedusing an integer and a message. The number is known as the _status code_ and the message as the _reason phrase_. The reason phrase is a human readable message used to clarify the outcome of the response. The HTTP status codes in the `4xx` range indicate client-side errors (validation or logic errors), while those in the `5xx` range indicate server-side errors (usually defect or outage). However, these status codes and human readable reason phrase are not sufficient to convey enough information about an error in a machine-readable manner. To resolve an error, non-human consumers of RESTful APIs need additional help.
 
